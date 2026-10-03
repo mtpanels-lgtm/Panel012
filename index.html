@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>GALU MODS PANEL</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<style>
+        :root {
+            --bg-color: #0b0a12;
+            --card-bg: rgba(20, 18, 31, 0.7);
+            --card-border: rgba(188, 19, 254, 0.1);
+            --neon-pink: #ff007f;
+            --neon-purple: #bc13fe;
+            --neon-cyan: #00f0ff;
+            --text-main: #ffffff;
+            --text-muted: #8a8f9e;
+            --success: #00ff66;
+            --error: #ff2a5f;
+            --sidebar-bg: #0f0e17;
+            --warning-bg: rgba(255, 170, 0, 0.05);
+            --warning-border: rgba(255, 170, 0, 0.3);
+            --warning-text: #ffaa00;
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%; max-width: 100vw; overflow-x: hidden;
+            background-color: var(--bg-color); color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        .hidden { display: none !important; }
+        
+        .glass {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .clickable-card {
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .clickable-card:active, .clickable-card.clicked-active {
+            border-color: var(--neon-cyan) !important;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4) !important;
+            transform: scale(0.98);
+        }
+
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #020204; z-index: 9999;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .spinner {
+            width: 50px; height: 50px; border: 4px solid rgba(188, 19, 254, 0.1);
+            border-top-color: var(--neon-purple); border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        #toast-container { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; }
+        .toast { padding: 14px 20px; border-radius: 12px; color: white; font-weight: 600; font-size: 13px; background: rgba(15,15,25,0.9); border-left: 4px solid var(--neon-purple); animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; display: flex; align-items: center; gap: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .toast.error { border-left-color: var(--error); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        #auth-screen { min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .auth-card { width: 100%; max-width: 400px; padding: 40px 30px; text-align: center; border-top: 2px solid var(--neon-purple); box-shadow: 0 0 30px rgba(188, 19, 254, 0.1); }
+        .auth-card h1 { font-weight: 800; letter-spacing: 2px; margin-bottom: 5px; }
+        .auth-card h1 span { color: var(--neon-purple); }
+        .auth-card p { color: var(--text-muted); font-size: 13px; margin-bottom: 25px; }
+        
+        .input-group { margin-bottom: 16px; width: 100%; position: relative; }
+        .input-group input, .custom-select {
+            width: 100%; padding: 0 16px; height: 50px; background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: white;
+            outline: none; transition: 0.3s; font-size: 14px;
+        }
+        .input-group input:focus, .custom-select:focus { border-color: var(--neon-purple); box-shadow: 0 0 10px rgba(188, 19, 254, 0.2); }
+        
+        .btn {
+            width: 100%; height: 50px; border-radius: 12px; border: none; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: 0.3s;
+            display: inline-flex; justify-content: center; align-items: center; gap: 8px; font-size: 14px;
+        }
+        .btn-primary { background: linear-gradient(90deg, var(--neon-purple), var(--neon-pink)); color: white; }
+        
+        .auth-toggle { margin-top: 20px; color: var(--text-muted); font-size: 13px; }
+        .auth-toggle span { color: var(--neon-purple); cursor: pointer; font-weight: 600; }
+
+        #main-app { display: none; width: 100%; }
+        .navbar {
+            position: fixed; top: 0; left: 0; width: 100%; height: 70px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; z-index: 999; border-bottom: 1px solid rgba(255,255,255,0.05);
+            background: #0b0a12;
+        }
+        .nav-left { display: flex; align-items: center; gap: 15px; }
+        .menu-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+        .logo { font-weight: 800; font-size: 20px; letter-spacing: 1px; }
+        .logo span { color: var(--neon-pink); }
+
+        .sidebar {
+            position: fixed; top: 0; left: -310px; width: 310px; height: 100%;
+            background: #110f1a; z-index: 1001; transition: 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex; flex-direction: column; padding: 30px 20px; box-shadow: 10px 0 40px rgba(0,0,0,0.6);
+        }
+        .sidebar.active { left: 0; }
+        
+        .sidebar-header-box {
+            display: flex; align-items: center; gap: 15px; margin-bottom: 25px; position: relative;
+        }
+        .sidebar-logo-icon-bg {
+            width: 46px; height: 46px; background: linear-gradient(135deg, #a81bfd, #6e0dd0);
+            border-radius: 12px; display: flex; justify-content: center; align-items: center;
+            color: white; font-size: 20px; box-shadow: 0 4px 15px rgba(168,27,253,0.4);
+        }
+        .sidebar-header-text { display: flex; flex-direction: column; }
+        .sidebar-header-title { font-weight: 700; font-size: 17px; color: #ffffff; letter-spacing: 0.5px; }
+        .sidebar-header-subtitle { font-size: 10px; font-weight: 700; color: #a252ff; letter-spacing: 1px; text-transform: uppercase; margin-top: -2px; }
+        
+        .sidebar-close { position: absolute; right: 0; top: 12px; background: none; border: none; color: #5f5a75; font-size: 18px; cursor: pointer; }
+
+        .sidebar-user-card {
+            background: #191627; border-radius: 14px; padding: 15px;
+            display: flex; align-items: center; gap: 15px; margin-bottom: 30px;
+        }
+        .sidebar-user-avatar {
+            width: 44px; height: 44px; background: #962cff; border-radius: 12px;
+            display: flex; justify-content: center; align-items: center; color: white; font-size: 18px;
+        }
+        .sidebar-user-info { display: flex; flex-direction: column; gap: 2px; }
+        .sidebar-username-txt { font-size: 14px; font-weight: 600; color: #ffffff; }
+        .sidebar-balance-txt { font-size: 15px; font-weight: 700; color: #20e77d; }
+
+        .sidebar-menu-cat {
+            font-size: 10px; font-weight: 700; color: #575270; letter-spacing: 1.5px;
+            text-transform: uppercase; margin-bottom: 12px; margin-left: 8px;
+        }
+
+        .sidebar-menu-list { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+        
+        .sidebar-item {
+            display: flex; align-items: center; gap: 16px; padding: 14px 18px;
+            color: #928daf; text-decoration: none; font-size: 14px; font-weight: 500;
+            border-radius: 12px; cursor: pointer; transition: 0.3s;
+        }
+        .sidebar-item i { font-size: 16px; width: 20px; text-align: center; color: #928daf; transition: 0.3s; }
+        
+        .sidebar-item.active-menu {
+            background: linear-gradient(90deg, #9621ff, #f21aff);
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 4px 20px rgba(150, 33, 255, 0.3);
+        }
+        .sidebar-item.active-menu i { color: #ffffff; }
+        
+        .sidebar-item:hover:not(.active-menu) {
+            background: rgba(255,255,255,0.03);
+            color: #ffffff;
+        }
+        .sidebar-item:hover:not(.active-menu) i { color: #ffffff; }
+        
+        .sidebar-logout-container { margin-top: auto; padding-top: 15px; }
+        .sidebar-item.logout-btn {
+            background: #24141e; color: #ff4a6b; justify-content: center; font-weight: 600;
+        }
+        .sidebar-item.logout-btn i { color: #ff4a6b; }
+        .sidebar-item.logout-btn:hover { background: #321624; }
+        
+        .sidebar-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000; display: none; backdrop-filter: blur(5px);
+        }
+        .sidebar-overlay.active { display: block; }
+
+        .container {
+            padding: 95px 20px 30px 20px; max-width: 480px; margin: 0 auto;
+            display: flex; flex-direction: column; gap: 20px;
+        }
+
+        .main-balance-box {
+            border: 1px solid rgba(188, 19, 254, 0.25); border-radius: 24px;
+            padding: 32px 24px; text-align: center; position: relative; overflow: hidden;
+            background: linear-gradient(145deg, #18112b, #100b1e);
+            box-shadow: 0 8px 32px 0 rgba(188, 19, 254, 0.15), inset 0 0 15px rgba(188, 19, 254, 0.1);
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .main-balance-box:active {
+            transform: scale(0.99);
+        }
+        .main-balance-label {
+            font-size: 11px; font-weight: 700; color: #b1a7cf;
+            text-transform: uppercase; letter-spacing: 2px; display: block; margin-bottom: 8px;
+        }
+        .main-balance-val {
+            font-size: 44px; font-weight: 800; color: #20e77d;
+            letter-spacing: 1.5px; display: block; line-height: 1.1;
+            text-shadow: 0 0 20px rgba(32, 231, 125, 0.3);
+        }
+        .wallet-icon-corner {
+            position: absolute; top: -10px; right: -10px; 
+            color: rgba(188, 19, 254, 0.08); font-size: 90px;
+            transform: rotate(-15deg); pointer-events: none;
+        }
+
+        .stats-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%;
+        }
+        .stat-mini-card {
+            background: #14121f; border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 16px; padding: 20px 16px; display: flex; flex-direction: column; gap: 8px;
+        }
+        .stat-huge-num { font-size: 32px; font-weight: 700; color: white; line-height: 1; }
+        .stat-label-text { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        
+        .stat-sub-row { display: flex; justify-content: space-between; margin-top: 5px; }
+        .sub-pill { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+        .pill-green { background: rgba(0, 255, 102, 0.06); color: var(--success); }
+        .pill-pink { background: rgba(255, 0, 127, 0.06); color: var(--neon-pink); }
+
+        .stat-wide-card {
+            grid-column: span 2; background: #14121f; border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 16px; padding: 22px 20px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .stat-wide-left { display: flex; flex-direction: column; gap: 6px; }
+        .wide-icon-right { color: rgba(255, 255, 255, 0.1); font-size: 24px; }
+
+        .leaderboard-section-title {
+            font-size: 12px; font-weight: 700; color: #a252ff;
+            text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 2px 2px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .leaderboard-table-wrapper {
+            background: #14121f; border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 16px; overflow: hidden; width: 100%;
+        }
+        .lead-row-header {
+            display: grid; grid-template-columns: 1.2fr 2.5fr 2fr 1.5fr;
+            padding: 14px 16px; background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-size: 11px; font-weight: 700; color: #a252ff; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .lead-row-item {
+            display: grid; grid-template-columns: 1.2fr 2.5fr 2fr 1.5fr;
+            padding: 14px 16px; align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+            font-size: 13px; color: #fff; font-weight: 500;
+        }
+        .lead-row-item:last-child { border-bottom: none; }
+        .lead-rank { color: var(--text-muted); font-weight: 600; }
+        .lead-user { color: #e1e7ef; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .role-badge {
+            background: rgba(188, 19, 254, 0.12); color: #c043ff;
+            font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 6px;
+            text-transform: uppercase; text-align: center; display: inline-block; width: max-content;
+        }
+        .lead-keys-count { font-family: monospace; font-size: 12px; color: var(--text-muted); text-align: right; font-weight: 600; padding-right: 5px; }
+
+        .quick-panels-section { display: flex; flex-direction: column; gap: 12px; margin-top: 5px; }
+        .quick-panels-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; }
+        .quick-card {
+            background: #14121f; border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 20px; padding: 26px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; cursor: pointer; transition: 0.3s;
+        }
+        .quick-card i { font-size: 26px; color: #a252ff; }
+        .quick-card span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #ffffff; }
+
+        .generator-card { background: #14121f; border: 1px solid rgba(255,255,255,0.03); border-radius: 20px; padding: 25px 20px; display: flex; flex-direction: column; gap: 18px; }
+        .field-label { font-size: 12px; font-weight: 700; color: #a3a3a3; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: -10px; }
+        
+        .custom-select {
+            background-color: #0b0a12; border: 1px solid rgba(255,255,255,0.08); color: white;
+        }
+
+        .quantity-wrapper { display: flex; background: #0b0a12; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; height: 50px; }
+        .qty-btn { width: 60px; height: 100%; background: transparent; border: none; color: white; font-size: 18px; cursor: pointer; }
+        .qty-input { flex: 1; height: 100%; background: transparent; border: none; text-align: center; color: white; font-size: 16px; font-weight: 700; pointer-events: none; }
+        .btn-generate { background: linear-gradient(90deg, #9621ff, #f21aff); color: white; margin-top: 5px; }
+
+        .deposit-container {
+            display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 10px 0;
+        }
+        .qr-box-wrapper {
+            width: 220px; height: 220px; border: 2px dashed var(--neon-cyan);
+            border-radius: 24px; display: flex; justify-content: center; align-items: center;
+            background: rgba(0, 240, 255, 0.02); padding: 10px; margin-top: 10px;
+        }
+        .qr-box-wrapper img {
+            width: 100%; height: 100%; object-fit: contain; border-radius: 14px;
+        }
+        .upi-display-pill {
+            width: 100%; height: 50px; background: rgba(0, 240, 255, 0.05);
+            border: 1px solid rgba(0, 240, 255, 0.15); border-radius: 12px;
+            display: flex; justify-content: center; align-items: center; gap: 12px;
+            color: var(--neon-cyan); font-weight: 600; font-size: 14px; cursor: pointer;
+        }
+        .warning-notice-box {
+            background: rgba(255, 170, 0, 0.06); border: 1px dashed rgba(255, 170, 0, 0.25);
+            border-radius: 12px; padding: 14px 16px; font-size: 12px; color: #ffbc3f;
+            display: flex; gap: 12px; align-items: flex-start; line-height: 1.5;
+        }
+        .warning-notice-box i { font-size: 14px; margin-top: 2px; }
+        .btn-submit-ref {
+            background: linear-gradient(90deg, #d60093, #ff007f); color: white;
+            font-weight: 700; height: 52px; margin-top: 5px; box-shadow: 0 4px 20px rgba(255, 0, 127, 0.2);
+        }
+
+        .list-container { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13px; }
+        
+        .data-item-card { background: #14121f; border: 1px solid rgba(255,255,255,0.03); border-radius: 12px; padding: 15px 18px; display: flex; justify-content: space-between; align-items: center; }
+        .item-details-left { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+        .item-title-main { font-size: 14px; font-weight: 600; color: #fff; }
+        .item-sub-meta { font-size: 11px; color: var(--text-muted); }
+        
+        .key-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+        .key-display-box { font-family: monospace; font-size: 13px; color: var(--neon-pink); background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px; display: inline-block; }
+        .inline-copy-btn { background: transparent; border: none; color: #00f0ff; cursor: pointer; font-size: 14px; padding: 4px; }
+
+        .item-badge-right { font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 6px; text-transform: uppercase; }
+        .badge-info { background: rgba(0, 240, 255, 0.1); color: var(--neon-cyan); }
+
+        .panel-heading { font-size: 16px; font-weight: 700; color: #ffffff; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px; }
+        .secure-badge { background: #14121f; border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; padding: 10px; display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 11px; font-weight: 600; color: #9ca3af; letter-spacing: 1px; text-transform: uppercase; }
+        .footer-text { text-align: center; font-size: 10px; color: #4b5563; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; }
+
+        /* --- SUB SELLER MANAGEMENT NEW UI --- */
+        .subseller-grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
+        .subseller-manage-box { background: #14121f; border-left: 4px solid var(--success); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .subseller-header { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 700; color: #fff; }
+        .subseller-header span { color: var(--text-muted); font-size: 11px; }
+        .btn-sub-create { background: linear-gradient(135deg, #a81bfd, #f21aff); color: white; font-weight: 700; height: 48px; border-radius: 12px; box-shadow: 0 4px 15px rgba(168,27,253,0.3); }
+        
+        .subseller-list-wrapper { display: flex; flex-direction: column; gap: 15px; width: 100%; margin-top: 5px; }
+        .subseller-card-item { background: linear-gradient(145deg, #161424, #0f0e1a); border: 1px solid rgba(255,255,255,0.03); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+        .sub-user-identity { display: flex; align-items: center; gap: 12px; }
+        .sub-avatar-icon { width: 40px; height: 40px; background: rgba(188, 19, 254, 0.1); border-radius: 10px; display: flex; justify-content: center; align-items: center; color: var(--neon-purple); font-size: 16px; }
+        .sub-meta-naming { display: flex; flex-direction: column; }
+        .sub-name-head { font-size: 15px; font-weight: 700; color: white; }
+        .sub-stats-metrics { display: flex; align-items: center; gap: 15px; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .sub-stats-metrics span i { margin-right: 4px; }
+        .metric-bal { color: #20e77d; font-weight: 600; }
+        .metric-keys { color: #00f0ff; }
+        
+        .sub-actions-toolbar { display: flex; gap: 10px; width: 100%; }
+        .sub-action-btn { flex: 1; height: 40px; border-radius: 10px; border: none; display: flex; justify-content: center; align-items: center; font-size: 14px; cursor: pointer; transition: 0.2s; color: white; }
+        .btn-act-wallet { background: #00c851; }
+        .btn-act-lock { background: #ffbb33; }
+        .btn-act-lock.banned { background: #9e9e9e; }
+        .btn-act-sync { background: #33b5e5; }
+        .btn-act-trash { background: #ff4444; }
+        .sub-action-btn:active { transform: scale(0.95); opacity: 0.8; }
+</style>
+</head>
+<body>
+
+<div id="loader">
+    <div class="spinner"></div>
+</div>
+
+<div id="toast-container"></div>
+
+<div id="auth-screen">
+    <div class="auth-card glass" id="login-box">
+        <h1>RESELLER.<span>PANEL</span></h1>
+        <p>Login to enter Master Dashboard</p>
+        <div class="input-group"><input id="login-username" placeholder="Username" type="text"/></div>
+        <div class="input-group"><input id="login-pass" placeholder="Password" type="password"/></div>
+        <button class="btn btn-primary" id="btn-login"><i class="fas fa-sign-in-alt"></i> Secure Login</button>
+        <p class="auth-toggle">New Reseller? <span id="go-to-signup">Create Account</span></p>
+    </div>
+    
+    <div class="auth-card glass hidden" id="signup-box">
+        <h1>REGISTER<span></span></h1>
+        <p>Create reseller credential status</p>
+        <div class="input-group"><input id="signup-name" placeholder="Full Name" type="text"/></div>
+        <div class="input-group"><input id="signup-gmail" placeholder="Gmail ID" type="email"/></div>
+        <div class="input-group"><input id="signup-username" placeholder="Username" type="text"/></div>
+        <div class="input-group"><input id="signup-pass" placeholder="Password (Min 6 chars)" type="password"/></div>
+        <button class="btn btn-primary" id="btn-signup"><i class="fas fa-user-plus"></i> Register</button>
+        <p class="auth-toggle">Already registered? <span id="go-to-login">Login here</span></p>
+    </div>
+</div>
+
+<div id="main-app">
+    <nav class="navbar">
+        <div class="nav-left">
+            <button class="menu-btn" id="menu-toggle"><i class="fas fa-bars"></i></button>
+            <div class="logo">Reseller <span>Panel</span></div>
+        </div>
+    </nav>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header-box">
+            <div class="sidebar-logo-icon-bg">
+                <i class="fas fa-th-large"></i>
+            </div>
+            <div class="sidebar-header-text">
+                <span class="sidebar-header-title">Reseller Panel Is Galu</span>
+                <span class="sidebar-header-subtitle">Premium Services</span>
+            </div>
+            <button class="sidebar-close" id="sidebar-close"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div class="sidebar-user-card">
+            <div class="sidebar-user-avatar">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="sidebar-user-info">
+                <span class="sidebar-username-txt" id="menu-username-label">Pannelseller</span>
+                <span class="sidebar-balance-txt">$<span id="menu-balance-label">0.00</span></span>
+            </div>
+        </div>
+        
+        <div class="sidebar-menu-cat">Main Menu</div>
+        
+        <div class="sidebar-menu-list">
+            <div class="sidebar-item active-menu" id="menu-Dashboard" onclick="switchTab('Dashboard')"><i class="fas fa-home"></i> Dashboard</div>
+            <div class="sidebar-item" id="menu-Profile" onclick="switchTab('Profile')"><i class="fas fa-user-shield"></i> Account Profile</div>
+            <div class="sidebar-item hidden" id="menu-SubSellers" onclick="switchTab('SubSellers')"><i class="fas fa-user-cog"></i> Manage Sub-Sellers</div>
+            <div class="sidebar-item" id="menu-BuyKeys" onclick="switchTab('BuyKeys')"><i class="fas fa-sliders"></i> Generate Keys</div>
+            <div class="sidebar-item" id="menu-AddFunds" onclick="switchTab('AddFunds')"><i class="fas fa-wallet"></i> Add Funds</div>
+            <div class="sidebar-item" id="menu-MyKeys" onclick="switchTab('MyKeys')"><i class="fas fa-history"></i> Key History</div>
+            <div class="sidebar-item" id="menu-History" onclick="switchTab('History')"><i class="fas fa-chart-bar"></i> Statistics</div>
+            
+            <div class="sidebar-logout-container">
+                <div class="sidebar-item logout-btn" id="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</div>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        
+        <div class="tab-view-section" id="view-Dashboard">
+            
+            <div class="main-balance-box" id="main-balance-card">
+                <i class="fas fa-wallet wallet-icon-corner"></i>
+                <span class="main-balance-label">Your Current Balance</span>
+                <span class="main-balance-val">$<span id="reseller-balance">0.00</span></span>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-mini-card clickable-card" id="today-sales-card" onclick="handleCardClick(this)">
+                    <span class="stat-huge-num" id="count-today-sales">0</span>
+                    <span class="stat-label-text">Today Sales</span>
+                    <div class="stat-sub-row">
+                        <span class="sub-pill pill-green" id="today-sales-r">R: 0</span>
+                        <span class="sub-pill pill-pink" id="today-sales-me">Me: 0</span>
+                    </div>
+                </div>
+                
+                <div class="stat-mini-card clickable-card" id="month-sales-card" onclick="handleCardClick(this)">
+                    <span class="stat-huge-num" id="count-month-sales">0</span>
+                    <span class="stat-label-text">Month Sell</span>
+                    <div class="stat-sub-row">
+                        <span class="sub-pill pill-green" id="month-sales-r">R: 0</span>
+                        <span class="sub-pill pill-pink" id="month-sales-me">Me: 0</span>
+                    </div>
+                </div>
+
+                <div class="stat-wide-card clickable-card" id="total-resellers-card" onclick="handleCardClick(this)">
+                    <div class="stat-wide-left">
+                        <span class="stat-huge-num" id="count-total-resellers">0</span>
+                        <span class="stat-label-text">My Total Resellers</span>
+                    </div>
+                    <i class="fas fa-users wide-icon-right"></i>
+                </div>
+            </div>
+
+            <div class="leaderboard-section-title">
+                >> Top 5 Resellers Leaderboard
+            </div>
+            
+            <div class="leaderboard-table-wrapper">
+                <div class="lead-row-header">
+                    <span>Rank</span>
+                    <span>Username</span>
+                    <span>Role</span>
+                    <span style="text-align: right;">Keys</span>
+                </div>
+                <div id="leaderboard-target-rows">
+                    <div class="empty-state">Loading Leaderboard rankings...</div>
+                </div>
+            </div>
+
+            <div class="quick-panels-section">
+                <div class="leaderboard-section-title">
+                    >> Quick Network Access Panels
+                </div>
+                <div class="quick-panels-grid">
+                    <div class="quick-card" onclick="switchTab('Profile')">
+                        <i class="fas fa-user-shield"></i>
+                        <span>My Profile</span>
+                    </div>
+                    <div class="quick-card" onclick="switchTab('BuyKeys')">
+                        <i class="fas fa-sliders"></i>
+                        <span>Generate Keys</span>
+                    </div>
+                    <div class="quick-card" onclick="switchTab('AddFunds')">
+                        <i class="fas fa-qrcode"></i>
+                        <span>Add Funds</span>
+                    </div>
+                    <div class="quick-card hidden" id="quick-subseller-btn" onclick="switchTab('SubSellers')">
+                        <i class="fas fa-user-cog"></i>
+                        <span>Sub-Sellers</span>
+                    </div>
+                    <div class="quick-card" onclick="switchTab('MyKeys')" style="grid-column: span 2;">
+                        <i class="fas fa-history"></i>
+                        <span>Key History</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="tab-view-section hidden" id="view-Profile">
+            <div class="panel-heading">Account Profile</div>
+            
+            <div class="generator-card glass" style="margin-bottom: 20px; gap: 12px;">
+                <div class="input-group" style="margin-bottom: 5px;">
+                    <span class="field-label" style="margin-bottom: 5px; display: block;">Username</span>
+                    <input id="profile-username" type="text" readonly style="opacity: 0.8; cursor: not-allowed; background: rgba(0,0,0,0.2);"/>
+                </div>
+                <div class="input-group" style="margin-bottom: 5px;">
+                    <span class="field-label" style="margin-bottom: 5px; display: block;">Role Access</span>
+                    <input id="profile-role" type="text" readonly style="opacity: 0.8; cursor: not-allowed; background: rgba(0,0,0,0.2); font-weight: 700; color: var(--neon-cyan);"/>
+                </div>
+                <div class="input-group" style="margin-bottom: 0;">
+                    <span class="field-label" style="margin-bottom: 5px; display: block;">Current Balance</span>
+                    <input id="profile-balance" type="text" readonly style="opacity: 0.8; cursor: not-allowed; background: rgba(0,0,0,0.2); font-weight: 700; color: var(--success);"/>
+                </div>
+            </div>
+
+            <div class="leaderboard-section-title">>> Security & Privacy</div>
+            
+            <div class="generator-card glass" style="gap: 15px;">
+                <div class="input-group" style="margin-bottom: 0;">
+                    <span class="field-label" style="margin-bottom: 5px; display: block;">Current Password</span>
+                    <input id="security-curr-pass" placeholder="••••••••" type="password"/>
+                </div>
+                
+                <div class="input-group" style="margin-bottom: 0;">
+                    <span class="field-label" style="margin-bottom: 5px; display: block;">New Password</span>
+                    <input id="security-new-pass" placeholder="••••••••" type="password"/>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 0;">
+                    <span class="field-label" style="margin-bottom: 5px; display: block;">Confirm Password</span>
+                    <input id="security-conf-pass" placeholder="••••••••" type="password"/>
+                </div>
+
+                <button class="btn" id="btn-update-security" style="background: var(--neon-cyan); color: #000; font-weight: 800; margin-top: 5px;">
+                    UPDATE ACCOUNT SECURITY
+                </button>
+            </div>
+        </div>
+
+        <div class="tab-view-section hidden" id="view-SubSellers">
+            <div class="panel-heading">Manage Sub-Sellers</div>
+            
+            <div class="subseller-manage-box">
+                <div class="subseller-header">
+                    <div><i class="fas fa-user-plus" style="color: var(--success); margin-right: 6px;"></i> Create Sub-Seller</div>
+                    <span id="subseller-count-slots">(0/30)</span>
+                </div>
+                <div class="subseller-grid-row">
+                    <div class="input-group" style="margin-bottom:0;"><input id="sub-username" placeholder="Username" type="text"/></div>
+                    <div class="input-group" style="margin-bottom:0;"><input id="sub-password" placeholder="Password" type="text"/></div>
+                </div>
+                <div class="input-group" style="margin-bottom:0;"><input id="sub-init-bal" placeholder="Initial Balance ($) Min 30" type="number" min="30"/></div>
+                <button class="btn btn-sub-create" id="btn-create-sub-seller"><i class="fas fa-plus"></i> CREATE (MIN $30)</button>
+            </div>
+
+            <div class="leaderboard-section-title" style="margin-top:15px;">>> Sub-Sellers List</div>
+            <div class="subseller-list-wrapper" id="subseller-list-target">
+                <div class="empty-state glass">No Sub-Sellers created yet.</div>
+            </div>
+        </div>
+
+        <div class="tab-view-section hidden" id="view-BuyKeys">
+            <div class="panel-heading">Generate Keys Panel</div>
+            <div class="generator-card glass">
+                <span class="field-label">Select Product</span>
+                <select class="custom-select" id="product-dropdown" onchange="handleProductChange()">
+                    <option value="" disabled selected>-- Choose Product --</option>
+                </select>
+
+                <span class="field-label">Select Duration</span>
+                <select class="custom-select" id="duration-dropdown" disabled>
+                    <option value="" disabled selected>-- First Select Product --</option>
+                </select>
+
+                <span class="field-label">Quantity</span>
+                <div class="quantity-wrapper">
+                    <button class="qty-btn" onclick="updateQty(-1)">-</button>
+                    <input class="qty-input" id="qty-input" type="text" value="1"/>
+                    <button class="qty-btn" onclick="updateQty(1)">+</button>
+                </div>
+
+                <button class="btn btn-generate" id="btn-generate-keys" onclick="processKeyGeneration()">GENERATE KEYS</button>
+            </div>
+        </div>
+
+        <div class="tab-view-section hidden" id="view-AddFunds">
+            <div class="panel-heading">Add Funds</div>
+            <div class="generator-card glass deposit-container">
+                <span class="field-label" style="display: flex; align-items: center; gap: 6px;"><i class="fas fa-camera"></i> Scan QR or Copy UPI ID to pay</span>
+                
+                <div class="qr-box-wrapper">
+                    <img id="admin-qr-target" src="https://i.imgur.com/AokHFw4.jpeg" alt="QR Code"/>
+                </div>
+
+                <div class="upi-display-pill" id="upi-pill-btn">
+                    <span id="admin-upi-target">galureang@fam</span>
+                    <i class="far fa-copy"></i>
+                </div>
+
+                <div class="warning-notice-box">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>After successful payment, submit details below carefully.</span>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 0;">
+                    <input id="deposit-amount" placeholder="Amount Sent (₹)" type="number"/>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 0;">
+                    <input id="deposit-utr" placeholder="Transaction UTR / Ref ID (12 Digits)" type="text" maxlength="12"/>
+                </div>
+
+                <button class="btn btn-submit-ref" id="btn-submit-deposit"><i class="fab fa-telegram-plane"></i> Submit Reference</button>
+            </div>
+        </div>
+
+        <div class="tab-view-section hidden" id="view-MyKeys">
+            <div class="panel-heading">My Keys Logs</div>
+            <div class="list-container" id="my-keys-list-target">
+                <div class="empty-state glass">No inventory keys generated yet.</div>
+            </div>
+        </div>
+
+        <div class="tab-view-section hidden" id="view-History">
+            <div class="panel-heading">Reseller Statistics Log</div>
+            <div class="list-container" id="history-list-target">
+                <div class="empty-state glass">No generated stats data records found.</div>
+            </div>
+        </div>
+
+        <div class="secure-badge glass">
+            <i class="fas fa-check-circle"></i> GALU MODS RESELLER Secure Interface
+        </div>
+        <div class="footer-text">© 2026 Encrypted Key Distribution</div>
+
+    </div>
+</div>
+
+<script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, update, push, get, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+  apiKey: "AIzaSyAI2iF3sXGFd71BXgS4dNtrDWUq_Uwmofk",
+  authDomain: "mr-panel--app.firebaseapp.com",
+  databaseURL: "https://mr-panel--app-default-rtdb.firebaseio.com",
+  projectId: "mr-panel--app",
+  storageBucket: "mr-panel--app.firebasestorage.app",
+  messagingSenderId: "981906187063",
+  appId: "1:981906187063:web:eb2a39a82de28becb3b0b2",
+  measurementId: "G-YHX84XLFNN"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let userData = { balance: 0.00, username: "", role: "Reseller" };
+        let currentUserId = null;
+        let liveDatabaseStore = {};
+
+        const TELEGRAM_BOT_TOKEN = "7052994435:AAH_QxN4Xm-g3XvXg74Xb62g2P2w1l_xXXX"; 
+        const TELEGRAM_CHAT_ID = "-8071055850"; 
+        const TELEGRAM_CHANNEL_LINK = "https://t.me/Galu_Mods_Owner";
+
+        const loader = document.getElementById('loader');
+        const authScreen = document.getElementById('auth-screen');
+        const mainApp = document.getElementById('main-app');
+
+        window.addEventListener('load', () => {
+            const savedUid = localStorage.getItem('panel_uid');
+            if(savedUid) {
+                initUserSession(savedUid);
+            } else {
+                loader.classList.add('hidden');
+            }
+        });
+
+        window.handleCardClick = (element) => {
+            document.querySelectorAll('.clickable-card').forEach(card => {
+                if (card !== element) card.classList.remove('clicked-active');
+            });
+            element.classList.toggle('clicked-active');
+        };
+
+        window.showToast = (msg, type = 'success') => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${msg}`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 3000);
+        };
+
+        window.switchTab = (tabName) => {
+            document.querySelectorAll('.tab-view-section').forEach(view => view.classList.add('hidden'));
+            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active-menu'));
+            
+            const targetView = document.getElementById(`view-${tabName}`);
+            if(targetView) targetView.classList.remove('hidden');
+
+            const targetMenu = document.getElementById(`menu-${tabName}`);
+            if(targetMenu) targetMenu.classList.add('active-menu');
+
+            if(sidebar.classList.contains('active')) toggleSidebar();
+        };
+
+        const menuToggle = document.getElementById('menu-toggle');
+        const sidebarClose = document.getElementById('sidebar-close');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+        menuToggle.onclick = toggleSidebar;
+        sidebarClose.onclick = toggleSidebar;
+        overlay.onclick = toggleSidebar;
+
+        function executeClipboardCopy(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast("Copied successfully!");
+                }).catch(() => {
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            el.style.position = 'fixed';
+            el.style.opacity = '0';
+            document.body.appendChild(el);
+            el.select();
+            try {
+                document.execCommand('copy');
+                showToast("Copied successfully!");
+            } catch (err) {
+                showToast("Failed to copy", "error");
+            }
+            document.body.removeChild(el);
+        }
+
+        document.getElementById('go-to-signup').onclick = () => {
+            document.getElementById('login-box').classList.add('hidden');
+            document.getElementById('signup-box').classList.remove('hidden');
+        };
+        document.getElementById('go-to-login').onclick = () => {
+            document.getElementById('signup-box').classList.add('hidden');
+            document.getElementById('login-box').classList.remove('hidden');
+        };
+
+        function initUserSession(uid) {
+            currentUserId = uid;
+            authScreen.classList.add('hidden');
+            mainApp.style.display = 'block';
+            syncUserDataLogs(uid);
+            setupLiveStoreListener();
+            initLeaderboardSync();
+            syncSalesAndCounters();
+            syncAdminPaymentSettings();
+            syncSubSellersList();
+            loader.classList.add('hidden');
+        }
+
+        function syncAdminPaymentSettings() {
+            onValue(ref(db, 'admin_settings'), (snapshot) => {
+                if(snapshot.exists()){
+                    const data = snapshot.val();
+                    if(data.qr_url) document.getElementById('admin-qr-target').src = data.qr_url;
+                    if(data.upi_id) document.getElementById('admin-upi-target').innerText = data.upi_id;
+                }
+            });
+        }
+
+        document.getElementById('upi-pill-btn').onclick = () => {
+            const currentUpi = document.getElementById('admin-upi-target').innerText;
+            executeClipboardCopy(currentUpi);
+        };
+
+        document.getElementById('btn-submit-deposit').onclick = async () => {
+            const amt = document.getElementById('deposit-amount').value.trim();
+            const utr = document.getElementById('deposit-utr').value.trim();
+
+            if(!amt || parseFloat(amt) <= 0) return showToast("Please enter valid amount", "error");
+            if(utr.length < 12) return showToast("UTR / Reference ID must be exactly 12 digits", "error");
+
+            loader.classList.remove('hidden');
+
+            const messageText = `⚡ *New Deposit Request* ⚡\n\n👤 *User:* @${userData.username.toUpperCase()}\n🆔 *UID:* ${currentUserId}\n💰 *Amount:* ₹${amt}\n🔢 *UTR/Ref ID:* \`${utr}\`\n🕒 *Time:* ${new Date().toLocaleString()}`;
+
+            try {
+                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: messageText,
+                        parse_mode: 'Markdown'
+                    })
+                });
+
+                showToast("Request Submitted! Opening Telegram Channel.");
+                
+                document.getElementById('deposit-amount').value = '';
+                document.getElementById('deposit-utr').value = '';
+
+                setTimeout(() => {
+                    window.location.href = TELEGRAM_CHANNEL_LINK;
+                }, 1000);
+
+            } catch (err) {
+                showToast("Telegram Gateway Error", "error");
+            } finally {
+                loader.classList.add('hidden');
+            }
+        };
+
+        function syncUserDataLogs(uid) {
+            onValue(ref(db, `users/${uid}`), (snapshot) => {
+                if(snapshot.exists()) {
+                    userData = snapshot.val();
+                }
+                const currentBalance = parseFloat(userData.balance || 0.00).toFixed(2);
+                document.getElementById('reseller-balance').innerText = currentBalance;
+                document.getElementById('menu-balance-label').innerText = currentBalance;
+                
+                const formatUser = userData.username ? userData.username.charAt(0).toUpperCase() + userData.username.slice(1) : "Reseller";
+                document.getElementById('menu-username-label').innerText = formatUser;
+                
+                // Profile view field strings setup sync
+                document.getElementById('profile-username').value = userData.username ? userData.username.toUpperCase() : "";
+                document.getElementById('profile-role').value = userData.role ? userData.role.toUpperCase() : "RESELLER";
+                document.getElementById('profile-balance').value = `₹${parseFloat(userData.balance || 0).toFixed(2)}`;
+
+                // Show Sub-Seller option only if user role is "Reseller"
+                if (userData.role === "Reseller") {
+                    document.getElementById('menu-SubSellers').classList.remove('hidden');
+                    document.getElementById('quick-subseller-btn').classList.remove('hidden');
+                } else {
+                    document.getElementById('menu-SubSellers').classList.add('hidden');
+                    document.getElementById('quick-subseller-btn').classList.add('hidden');
+                }
+
+                renderKeysList(userData.generatedKeys);
+                renderHistoryList(userData.transactions);
+            });
+        }
+
+        function initLeaderboardSync() {
+            onValue(ref(db, 'users'), (snapshot) => {
+                const target = document.getElementById('leaderboard-target-rows');
+                if(!snapshot.exists()) {
+                    target.innerHTML = `<div class="empty-state">No users registered yet.</div>`;
+                    return;
+                }
+
+                let usersList = [];
+                snapshot.forEach((childSnapshot) => {
+                    const data = childSnapshot.val();
+                    let keyCount = 0;
+                    
+                    if (data.generatedKeys) {
+                        keyCount = Object.keys(data.generatedKeys).length;
+                    } else if (data.keyCount) {
+                        keyCount = parseInt(data.keyCount) || 0;
+                    }
+
+                    if (keyCount > 0) {
+                        let formattedUsername = data.username ? data.username.toUpperCase() : 'UNKNOWN';
+                        usersList.push({
+                            username: `@${formattedUsername}`,
+                            role: data.role || "Reseller",
+                            keys: keyCount,
+                            balance: parseFloat(data.balance || 0)
+                        });
+                    }
+                });
+
+                if(usersList.length === 0) {
+                    target.innerHTML = `<div class="empty-state">No users have bought keys yet.</div>`;
+                    return;
+                }
+
+                usersList.sort((a, b) => {
+                    if (b.keys !== a.keys) {
+                        return b.keys - a.keys;
+                    }
+                    return b.balance - a.balance; 
+                });
+
+                const topFive = usersList.slice(0, 5);
+
+                target.innerHTML = '';
+                topFive.forEach((u, index) => {
+                    target.innerHTML += `
+                        <div class="lead-row-item">
+                            <span class="lead-rank">#${index + 1}</span>
+                            <span class="lead-user">${u.username}</span>
+                            <div><span class="role-badge">${u.role}</span></div>
+                            <span class="lead-keys-count">${u.keys}=Key</span>
+                        </div>`;
+                });
+            });
+        }
+
+        function syncSalesAndCounters() {
+            onValue(ref(db, 'users'), (snapshot) => {
+                let totalResellers = 0;
+                let myTodaySales = 0;
+                let myMonthSales = 0;
+
+                const todayStr = new Date().toLocaleDateString();
+                const currentMonth = new Date().getMonth();
+                const currentYear = new Date().getFullYear();
+
+                if (snapshot.exists()) {
+                    snapshot.forEach((userSnap) => {
+                        const uid = userSnap.key;
+                        const uData = userSnap.val();
+
+                        totalResellers++;
+
+                        if (uid === currentUserId && uData.generatedKeys) {
+                            Object.values(uData.generatedKeys).forEach(key => {
+                                const keyDate = new Date(key.timestamp);
+                                const qty = parseInt(key.qty || 1);
+
+                                if (keyDate.toLocaleDateString() === todayStr) {
+                                    myTodaySales += qty;
+                                }
+
+                                if (keyDate.getMonth() === currentMonth && keyDate.getFullYear() === currentYear) {
+                                    myMonthSales += qty;
+                                }
+                            });
+                        }
+                    });
+                }
+
+                document.getElementById('count-total-resellers').innerText = totalResellers; 
+                document.getElementById('count-today-sales').innerText = myTodaySales;
+                document.getElementById('count-month-sales').innerText = myMonthSales;
+
+                document.getElementById('today-sales-me').innerText = `Me: ${myTodaySales}`;
+                document.getElementById('today-sales-r').innerText = `R: 0`;
+                document.getElementById('month-sales-me').innerText = `Me: ${myMonthSales}`;
+                document.getElementById('month-sales-r').innerText = `R: 0`;
+            });
+        }
+
+        function renderKeysList(keysObj) {
+            const target = document.getElementById('my-keys-list-target');
+            if(!keysObj) {
+                target.innerHTML = `<div class="empty-state glass">No inventory keys generated yet.</div>`;
+                return;
+            }
+            target.innerHTML = '';
+            
+            Object.values(keysObj).reverse().forEach(k => {
+                const card = document.createElement('div');
+                card.className = 'data-item-card glass';
+                
+                card.innerHTML = `
+                    <div class="item-details-left">
+                        <span class="item-title-main">${k.product}</span>
+                        <span class="item-sub-meta">Duration: ${k.duration} | Qty: ${k.qty}</span>
+                        <div class="key-row">
+                            <div class="key-display-box">${k.keyCode}</div>
+                            <button class="inline-copy-btn" title="Copy Key">
+                                <i class="far fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <span class="item-badge-right badge-info">Active</span>`;
+                
+                const copyBtn = card.querySelector('.inline-copy-btn');
+                copyBtn.addEventListener('click', () => {
+                    executeClipboardCopy(k.keyCode);
+                });
+                
+                target.appendChild(card);
+            });
+        }
+
+        function renderHistoryList(historyObj) {
+            const target = document.getElementById('history-list-target');
+            if(!historyObj) {
+                target.innerHTML = `<div class="empty-state glass">No generated stats data records found.</div>`;
+                return;
+            }
+            target.innerHTML = '';
+            Object.values(historyObj).reverse().forEach(h => {
+                const isDeposit = h.type === 'Deposit' || h.type === 'SubSeller_Refund';
+                const sign = isDeposit ? '+' : '-';
+                target.innerHTML += `
+                    <div class="data-item-card glass">
+                        <div class="item-details-left">
+                            <span class="item-title-main">${h.description}</span>
+                            <span class="item-sub-meta">${h.date || 'Just Now'}</span>
+                        </div>
+                        <span class="item-badge-right badge-info">${sign}$${parseFloat(h.amount).toFixed(2)}</span>
+                    </div>`;
+            });
+        }
+
+        function setupLiveStoreListener() {
+            const productSelect = document.getElementById('product-dropdown');
+            
+            onValue(ref(db, 'store_management'), (snapshot) => {
+                productSelect.innerHTML = '<option value="" disabled selected>-- Choose Product --</option>';
+                
+                if(!snapshot.exists()) {
+                    liveDatabaseStore = {};
+                    productSelect.innerHTML = '<option value="" disabled>No products uploaded by Admin</option>';
+                    return;
+                }
+
+                liveDatabaseStore = snapshot.val();
+
+                Object.keys(liveDatabaseStore).forEach(productName => {
+                    let opt = document.createElement('option');
+                    opt.value = productName;
+                    opt.innerText = productName;
+                    productSelect.appendChild(opt);
+                });
+            });
+        }
+
+        window.handleProductChange = () => {
+            const productSelect = document.getElementById('product-dropdown').value;
+            const durationSelect = document.getElementById('duration-dropdown');
+            durationSelect.innerHTML = '';
+            durationSelect.disabled = false;
+
+            const selectedPlans = liveDatabaseStore[productSelect];
+            if(selectedPlans) {
+                Object.keys(selectedPlans).forEach(dayKey => {
+                    const plan = selectedPlans[dayKey];
+                    let opt = document.createElement('option');
+                    opt.value = JSON.stringify({ days: plan.daysPlan, price: plan.priceRate });
+                    opt.innerText = `${plan.daysPlan} - $${parseFloat(plan.priceRate).toFixed(2)}`;
+                    durationSelect.appendChild(opt);
+                });
+            }
+        };
+
+        window.updateQty = (val) => {
+            const qtyInput = document.getElementById('qty-input');
+            let currentQty = parseInt(qtyInput.value) || 1;
+            currentQty += val;
+            if(currentQty < 1) currentQty = 1;
+            qtyInput.value = currentQty;
+        };
+
+        window.processKeyGeneration = async () => {
+            const product = document.getElementById('product-dropdown').value;
+            const durationRaw = document.getElementById('duration-dropdown').value;
+            const qty = parseInt(document.getElementById('qty-input').value) || 1;
+
+            if(!product) return showToast("Please select a valid product first!", "error");
+            if(!durationRaw) return showToast("Please select your validation plan!", "error");
+
+            if(userData.status === "Banned") {
+                return showToast("Your account is suspended/banned!", "error");
+            }
+
+            const planDetails = JSON.parse(durationRaw);
+            const totalCost = planDetails.price * qty;
+            const currentBal = parseFloat(userData.balance || 0.00);
+
+            if(currentBal < totalCost) {
+                return showToast(`Insufficient funds! Required: $${totalCost.toFixed(2)}`, "error");
+            }
+
+            loader.classList.remove('hidden');
+            const updatedBal = currentBal - totalCost;
+            
+            const dynamicKeyString = `FF-${Math.random().toString(36).substr(2, 9).toUpperCase()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+
+            const keyRef = push(ref(db, `users/${currentUserId}/generatedKeys`));
+            await set(keyRef, {
+                product: product,
+                duration: planDetails.days,
+                qty: qty,
+                keyCode: dynamicKeyString,
+                timestamp: new Date().toISOString()
+            });
+
+            let exactTotalKeys = userData.generatedKeys ? Object.keys(userData.generatedKeys).length + 1 : 1;
+
+            const txRef = push(ref(db, `users/${currentUserId}/transactions`));
+            await set(txRef, {
+                type: "Generation",
+                amount: totalCost,
+                description: `Generated ${qty} Key for ${product}`,
+                date: new Date().toLocaleString()
+            });
+
+            await update(ref(db, `users/${currentUserId}`), { 
+                balance: updatedBal,
+                keyCount: exactTotalKeys
+            });
+            
+            loader.classList.add('hidden');
+            showToast("Keys generated successfully!");
+            switchTab('MyKeys');
+        };
+
+        /* --- PROFILE AND ENCRYPTED SECURITY HANDLER --- */
+        document.getElementById('btn-update-security').onclick = async () => {
+            const currPass = document.getElementById('security-curr-pass').value;
+            const newPass = document.getElementById('security-new-pass').value;
+            const confPass = document.getElementById('security-conf-pass').value;
+
+            if (!currPass || !newPass || !confPass) {
+                return showToast("Please fill all password fields!", "error");
+            }
+            if (currPass !== userData.password) {
+                return showToast("Current password does not match!", "error");
+            }
+            if (newPass.length < 6) {
+                return showToast("New password must be at least 6 characters long!", "error");
+            }
+            if (newPass !== confPass) {
+                return showToast("New passwords do not match each other!", "error");
+            }
+
+            loader.classList.remove('hidden');
+
+            try {
+                await update(ref(db, `users/${currentUserId}`), {
+                    password: newPass
+                });
+
+                showToast("Security settings updated successfully!");
+                
+                document.getElementById('security-curr-pass').value = '';
+                document.getElementById('security-new-pass').value = '';
+                document.getElementById('security-conf-pass').value = '';
+
+            } catch (err) {
+                showToast("Database synchronization failed!", "error");
+            } finally {
+                loader.classList.add('hidden');
+            }
+        };
+
+        /* --- SUB-SELLER SYSTEM FUNCTIONS --- */
+        document.getElementById('btn-create-sub-seller').onclick = async () => {
+            const subUser = document.getElementById('sub-username').value.trim().toLowerCase();
+            const subPass = document.getElementById('sub-password').value.trim();
+            const subBal = parseFloat(document.getElementById('sub-init-bal').value) || 0;
+
+            if(!subUser || !subPass || subBal < 30) {
+                return showToast("Fill details! Min Initial Balance is $30", "error");
+            }
+
+            if(parseFloat(userData.balance) < subBal) {
+                return showToast("You do not have enough balance!", "error");
+            }
+
+            loader.classList.remove('hidden');
+
+            try {
+                const usersSnapshot = await get(ref(db, 'users'));
+                let exists = false;
+                let currentSubCount = 0;
+
+                if(usersSnapshot.exists()) {
+                    usersSnapshot.forEach(child => {
+                        const u = child.val();
+                        if(u.username === subUser) exists = true;
+                        if(u.createdBy === currentUserId) currentSubCount++;
+                    });
+                }
+
+                if(currentSubCount >= 30) {
+                    loader.classList.add('hidden');
+                    return showToast("Sub-Seller maximum limit reached (30/30)!", "error");
+                }
+
+                if(exists) {
+                    loader.classList.add('hidden');
+                    return showToast("Username already registered globally!", "error");
+                }
+
+                const subUid = "SUB-" + Math.floor(100000 + Math.random() * 900000) + "-" + subUser;
+
+                const newResellerBal = parseFloat(userData.balance) - subBal;
+                const txRef = push(ref(db, `users/${currentUserId}/transactions`));
+                await set(txRef, {
+                    type: "Create_SubSeller",
+                    amount: subBal,
+                    description: `Transferred funds to create sub-seller @${subUser.toUpperCase()}`,
+                    date: new Date().toLocaleString()
+                });
+
+                await update(ref(db, `users/${currentUserId}`), { balance: newResellerBal });
+
+                await set(ref(db, `users/${subUid}`), {
+                    name: subUser.toUpperCase() + " Sub",
+                    email: subUser + "@panel.sub",
+                    username: subUser,
+                    password: subPass,
+                    balance: subBal,
+                    keyCount: 0,
+                    role: "Sub-Seller",
+                    status: "Active",
+                    createdBy: currentUserId
+                });
+
+                showToast("Sub-Seller Dashboard Profile Created Successfully!");
+                document.getElementById('sub-username').value = '';
+                document.getElementById('sub-password').value = '';
+                document.getElementById('sub-init-bal').value = '';
+
+            } catch (err) {
+                showToast("DB Connectivity Fail", "error");
+            } finally {
+                loader.classList.add('hidden');
+            }
+        };
+
+        function syncSubSellersList() {
+            onValue(ref(db, 'users'), (snapshot) => {
+                const wrapper = document.getElementById('subseller-list-target');
+                const slotLabel = document.getElementById('subseller-count-slots');
+                
+                if(!snapshot.exists()) {
+                    wrapper.innerHTML = `<div class="empty-state glass">No Sub-Sellers created yet.</div>`;
+                    slotLabel.innerText = "(0/30)";
+                    return;
+                }
+
+                let subCount = 0;
+                wrapper.innerHTML = '';
+
+                snapshot.forEach(child => {
+                    const uid = child.key;
+                    const u = child.val();
+
+                    if(u.createdBy === currentUserId) {
+                        subCount++;
+                        let subKeyLength = u.generatedKeys ? Object.keys(u.generatedKeys).length : (u.keyCount || 0);
+                        const isBanned = u.status === "Banned";
+
+                        const card = document.createElement('div');
+                        card.className = 'subseller-card-item';
+                        card.innerHTML = `
+                            <div class="sub-user-identity">
+                                <div class="sub-avatar-icon"><i class="fas fa-user"></i></div>
+                                <div class="sub-meta-naming">
+                                    <span class="sub-name-head">${u.username.toUpperCase()} ${isBanned ? '<span style="color:var(--error); font-size:11px;">[BANNED]</span>' : ''}</span>
+                                    <div class="sub-stats-metrics">
+                                        <span class="metric-bal"><i class="fas fa-wallet"></i>$${parseFloat(u.balance).toFixed(2)}</span>
+                                        <span class="metric-keys"><i class="fas fa-key"></i>${subKeyLength} Keys</span>
+                                        <span style="font-size:10px; color:var(--text-muted);">Pass: ${u.password}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sub-actions-toolbar">
+                                <button class="sub-action-btn btn-act-wallet" title="Add Balance" onclick="modifySubBalance('${uid}', '${u.username}')"><i class="fas fa-plus-circle"></i></button>
+                                <button class="sub-action-btn btn-act-lock ${isBanned ? 'banned' : ''}" title="${isBanned ? 'Unban User' : 'Ban User'}" onclick="toggleSubBan('${uid}', ${isBanned})"><i class="fas ${isBanned ? 'fa-unlock' : 'fa-ban'}"></i></button>
+                                <button class="sub-action-btn btn-act-sync" title="Reset Password" onclick="resetSubPassword('${uid}')"><i class="fas fa-key"></i></button>
+                                <button class="sub-action-btn btn-act-trash" title="Delete Profile" onclick="deleteSubSeller('${uid}', ${u.balance})"><i class="fas fa-trash"></i></button>
+                            </div>
+                        `;
+                        wrapper.appendChild(card);
+                    }
+                });
+
+                slotLabel.innerText = `(${subCount}/30)`;
+                if(subCount === 0) {
+                    wrapper.innerHTML = `<div class="empty-state glass">No Sub-Sellers created yet.</div>`;
+                }
+            });
+        }
+
+        window.modifySubBalance = async (uid, username) => {
+            const amount = prompt(`Enter amount ($) to transfer into @${username.toUpperCase()} account:`);
+            if(!amount || parseFloat(amount) <= 0 || isNaN(amount)) return;
+            const parsedAmt = parseFloat(amount);
+
+            if(parseFloat(userData.balance) < parsedAmt) {
+                return showToast("Insufficient panel funds balance!", "error");
+            }
+
+            loader.classList.remove('hidden');
+            const subRef = ref(db, `users/${uid}`);
+            const subSnap = await get(subRef);
+
+            if(subSnap.exists()) {
+                const subCurrentBal = parseFloat(subSnap.val().balance || 0);
+                await update(subRef, { balance: subCurrentBal + parsedAmt });
+                await update(ref(db, `users/${currentUserId}`), { balance: parseFloat(userData.balance) - parsedAmt });
+                
+                const txRef = push(ref(db, `users/${currentUserId}/transactions`));
+                await set(txRef, {
+                    type: "SubSeller_FundTransfer",
+                    amount: parsedAmt,
+                    description: `Added panel funds to @${username.toUpperCase()}`,
+                    date: new Date().toLocaleString()
+                });
+                showToast("Balance transferred flawlessly!");
+            }
+            loader.classList.add('hidden');
+        };
+
+        window.toggleSubBan = async (uid, currentStatus) => {
+            loader.classList.remove('hidden');
+            await update(ref(db, `users/${uid}`), { status: currentStatus ? "Active" : "Banned" });
+            showToast(currentStatus ? "Sub-Seller accounts unsuspended!" : "Sub-Seller system permissions revoked/banned!");
+            loader.classList.add('hidden');
+        };
+
+        window.resetSubPassword = async (uid) => {
+            const nPass = prompt("Enter new password credential profile string:");
+            if(!nPass || nPass.trim().length < 5) return showToast("Password must be minimum 5 lengths!", "error");
+            
+            loader.classList.remove('hidden');
+            await update(ref(db, `users/${uid}`), { password: nPass.trim() });
+            showToast("Password synced securely!");
+            loader.classList.add('hidden');
+        };
+
+        window.deleteSubSeller = async (uid, currentSubBal) => {
+            if(!confirm("Are you sure you want to permanently delete this Sub-seller profile node? Remaining balance will be refunded.")) return;
+
+            loader.classList.remove('hidden');
+            const parsedRefund = parseFloat(currentSubBal || 0);
+
+            if(parsedRefund > 0) {
+                await update(ref(db, `users/${currentUserId}`), { balance: parseFloat(userData.balance) + parsedRefund });
+                const txRef = push(ref(db, `users/${currentUserId}/transactions`));
+                await set(txRef, {
+                    type: "SubSeller_Refund",
+                    amount: parsedRefund,
+                    description: `Refund from deleting sub-seller profile account.`,
+                    date: new Date().toLocaleString()
+                });
+            }
+
+            await remove(ref(db, `users/${uid}`));
+            showToast("Sub-Seller removed and profile data wiped.");
+            loader.classList.add('hidden');
+        };
+
+        /* --- LOGIN & REGISTRATION FLOWS --- */
+        document.getElementById('btn-login').onclick = async () => {
+            const username = document.getElementById('login-username').value.trim().toLowerCase();
+            const pass = document.getElementById('login-pass').value;
+
+            if(!username || !pass) return showToast("Enter all required credentials", "error");
+            loader.classList.remove('hidden');
+
+            try {
+                const userSnapshot = await get(ref(db, 'users'));
+                let matchedUid = null;
+                let userObj = null;
+
+                if (userSnapshot.exists()) {
+                    userSnapshot.forEach((childSnapshot) => {
+                        const data = childSnapshot.val();
+                        if (data.username && data.username.toLowerCase() === username && data.password === pass) {
+                            matchedUid = childSnapshot.key;
+                            userObj = data;
+                        }
+                    });
+                }
+
+                if (matchedUid) {
+                    if (userObj.status === "Banned") {
+                        showToast("Your account is suspended/banned!", "error");
+                    } else {
+                        localStorage.setItem('panel_uid', matchedUid);
+                        initUserSession(matchedUid);
+                        showToast("Logged in securely!");
+                    }
+                } else {
+                    showToast("Invalid Username or Password", "error");
+                }
+            } catch (err) {
+                showToast("System connectivity error", "error");
+            } finally {
+                loader.classList.add('hidden');
+            }
+        };
+
+        document.getElementById('btn-signup').onclick = async () => {
+            const name = document.getElementById('signup-name').value.trim();
+            const email = document.getElementById('signup-gmail').value.trim();
+            const username = document.getElementById('signup-username').value.trim().toLowerCase();
+            const pass = document.getElementById('signup-pass').value;
+
+            if(!name || !email || !username || pass.length < 6) {
+                return showToast("All fields are required, password min 6 chars", "error");
+            }
+
+            loader.classList.remove('hidden');
+
+            try {
+                const userSnapshot = await get(ref(db, 'users'));
+                let usernameExists = false;
+
+                if (userSnapshot.exists()) {
+                    userSnapshot.forEach((childSnapshot) => {
+                        const data = childSnapshot.val();
+                        if (data.username && data.username.toLowerCase() === username) {
+                            usernameExists = true;
+                        }
+                    });
+                }
+
+                if (usernameExists) {
+                    showToast("Username already taken!", "error");
+                    loader.classList.add('hidden');
+                    return;
+                }
+
+                const newUid = "UID-" + Math.floor(100000 + Math.random() * 900000) + "-" + username;
+
+                await set(ref(db, `users/${newUid}`), { 
+                    name: name,
+                    email: email,
+                    username: username, 
+                    password: pass,
+                    balance: 0.00,
+                    keyCount: 0,
+                    role: "Reseller",
+                    status: "Active"
+                });
+
+                localStorage.setItem('panel_uid', newUid);
+                initUserSession(newUid);
+                showToast("Account registered successfully!");
+
+            } catch (err) { 
+                showToast("Registration configurations failed", "error"); 
+            } finally {
+                loader.classList.add('hidden');
+            }
+        };
+
+        document.getElementById('btn-logout').onclick = async () => {
+            if(sidebar.classList.contains('active')) toggleSidebar();
+            localStorage.removeItem('panel_uid');
+            currentUserId = null;
+            mainApp.style.display = 'none';
+            authScreen.classList.remove('hidden');
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-pass').value = '';
+            showToast("Logged out successfully");
+        };
+</script>
+</body>
+</html>
